@@ -17,8 +17,6 @@ class Settings(BaseSettings):
 
     # AI configuration
     ai_mode: str | None = "remote"     # remote | local | off
-    hf_api_key: str | None = None
-    hf_model: str | None = "facebook/bart-large-mnli"
     # Gemini
     gemini_api_key: str | None = None
     gemini_model: Optional[str] = None  # e.g., 'gemini-pro' (v1) or 'gemini-1.5-flash' (v1beta)
