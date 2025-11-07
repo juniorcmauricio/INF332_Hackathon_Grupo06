@@ -1,0 +1,36 @@
+# ────────────────
+# Ignore everything by default
+# ────────────────
+*
+
+# ────────────────
+# Allow only what YOU wrote
+# ────────────────
+
+# Core app code
+!app/
+!app/**/*.py
+
+# Documentation & metadata
+!README.md
+!.gitignore
+
+# Optional configuration you wrote
+!requirements.txt
+!pyproject.toml
+!Dockerfile
+
+# ────────────────
+# Ignore secrets, environments, and generated stuff
+# ────────────────
+.env
+movieapi.env
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+.cache/
+.pytest_cache/
+.mypy_cache/
