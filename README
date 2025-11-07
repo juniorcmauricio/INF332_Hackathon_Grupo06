@@ -1,0 +1,135 @@
+📁 Project structure
+hackapi/
+ ├─ app/
+ │   ├─ main.py
+ │   ├─ config.py
+ │   ├─ models.py
+ │   ├─ services/
+ │   │    └─ recommendation_service.py
+ │   ├─ clients/
+ │   │    └─ tmdb.py
+ │   └─ ai/
+ │        ├─ genre_mapper.py
+ │        └─ hf_zero_shot.py
+ ├─ movieapi.env               ← environment variables live here
+ ├─ requirements.txt
+ └─ README.md
+
+⚙️ 1. Create the virtual environment
+
+Open a terminal (PowerShell, cmd, or bash) inside the project root:
+
+# Create virtual environment
+python -m venv .venv
+
+# Activate it
+# On Windows (PowerShell)
+.venv\Scripts\Activate.ps1
+# On Linux/macOS
+source .venv/bin/activate
+
+
+Your prompt should now show (.venv) at the start.
+
+📦 2. Install dependencies
+
+💡 Base install is lightweight — no heavy ML unless you want local AI.
+
+pip install --upgrade pip
+pip install -r requirements.txt
+
+
+If you don’t have requirements.txt yet:
+
+pip install fastapi uvicorn httpx pydantic-settings cachetools tenacity python-dotenv
+pip freeze > requirements.txt
+
+🔑 3. Configure the environment file
+
+Create or edit a file named movieapi.env at the project root (same folder as app/):
+
+# TMDB API (required)
+HACK_MOVIES_API_BASE=https://api.themoviedb.org/3
+HACK_TMDB_V3_KEY=YOUR_TMDB_V3_KEY_HERE
+
+# Choose how AI runs: local | remote | off
+HACK_AI_MODE=remote
+
+# Hugging Face Inference API (only for remote mode)
+HACK_HF_API_KEY=hf_your_hf_token_here
+HACK_HF_MODEL=facebook/bart-large-mnli
+
+
+🧩 Tips:
+
+Do not rename this file — it must stay as movieapi.env for the loader to work.
+
+Never commit it to Git (it’s in .gitignore).
+
+Get your TMDB v3 key at https://www.themoviedb.org/settings/api
+.
+
+Get your Hugging Face API token at https://huggingface.co/settings/tokens
+.
+
+🚀 4. Run the server
+
+From your virtual environment:
+
+uvicorn app.main:app --reload
+
+
+Expected output:
+
+Uvicorn running on http://127.0.0.1:8000
+
+🧭 5. Test the API
+
+Open your browser or run:
+
+# Health check
+http://127.0.0.1:8000/health
+
+# Debug IA + TMDB test
+http://127.0.0.1:8000/_debug/checks?mood=feliz
+
+# Movie recommendations
+http://127.0.0.1:8000/recommendations?mood=um filme leve e inspirador
+
+
+Or use the Swagger docs:
+👉 http://127.0.0.1:8000/docs
+
+🧠 6. (Optional) Local AI mode
+
+If you want to run the AI locally (no external API calls):
+
+pip install "transformers>=4.46" "torch==2.6.*" --index-url https://download.pytorch.org/whl/cpu
+
+
+Then, in movieapi.env:
+
+HACK_AI_MODE=local
+
+
+⚠️ On Windows, install the Microsoft Visual C++ 2015–2022 Redistributable (x64) to fix DLL issues.
+
+⚡ 7. Environment modes summary
+Mode	Extra packages	Behavior	Latency
+off	none	uses static map only	⚡ instant
+remote	httpx	calls Hugging Face API	🌐 depends on network
+local	torch + transformers	runs zero-shot locally	🧮 higher CPU load
+🧰 8. Useful commands
+Command	Description
+deactivate	Exit the virtual environment
+pip list	List installed packages
+pip freeze > requirements.txt	Update dependency file
+git status	Show versioned files
+uvicorn app.main:app --reload	Run development server
+🧼 9. Troubleshooting
+Symptom	Fix
+401 from TMDB	Check HACK_TMDB_V3_KEY inside movieapi.env
+DLL load failed (torch)	Switch to HACK_AI_MODE=remote or reinstall VC++ runtime
+.env not loading	Must be named movieapi.env and located at project root
+Model load error	Upgrade Torch to ≥2.6 or switch to remote
+Packages mismatch	pip cache purge && pip install -r requirements.txt
