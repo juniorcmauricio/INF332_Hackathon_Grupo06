@@ -8,12 +8,18 @@ class Settings(BaseSettings):
     Values are read from environment and the .env file.
     """
     app_name: str = "Hackathon Movies API"
-    request_timeout_s: float = 3.0
+    request_timeout_s: float = 15.0
 
     # External provider (TMDB)
     movies_api_base: str = "https://api.themoviedb.org/3"
     movies_api_key: str = ""              # v4 bearer (unused for v3)
     tmdb_v3_key: Optional[str] = None     # ⬅️ your v3 key lives here
+
+    # AI configuration
+    ai_mode: str | None = "remote"     # remote | local | off
+    hf_api_key: str | None = None
+    hf_model: str | None = "facebook/bart-large-mnli"
+
 
     # ⬇️ THIS is the important bit for pydantic-settings v2
     model_config = SettingsConfigDict(

@@ -7,6 +7,9 @@ from .config import settings
 from .models import RecommendationList
 from .services.recommendation_service import RecommendationService
 
+from .ai.hf_zero_shot import map_via_hf_api
+
+
 # debug helpers
 from .clients.tmdb import TMDBClient
 from .ai.genre_mapper import (
@@ -45,19 +48,51 @@ async def recommendations(mood: MoodParam) -> RecommendationList:
 
 dbg_tmdb: TMDBClient = TMDBClient()
 
+@app.get("/_debug/config")
+def debug_config() -> Dict[str, Any]:
+    """Debug endpoint to show current configuration."""
+    print("Debug config endpoint called")
+    return {
+        "ai_mode": settings.ai_mode,
+        "hf_model": settings.hf_model,
+        "hf_api_key_present": bool(settings.hf_api_key),
+        "tmdb_v3_key_present": bool(settings.tmdb_v3_key),
+    }
+
 @app.get("/_debug/checks")
 async def debug_checks(mood: str = "feliz") -> Dict[str, Any]:
     """
-    Diagnostics: shows AI availability, fallback genres and TMDB reachability.
+    Diagnostics that respect AI mode:
+      - ai_mode: remote | local | off
+      - local_available: only meaningful when ai_mode=local
+      - remote_ok: True if remote call succeeded
     """
+    print("DEBUG AI_MODE:", settings.ai_mode)
     try:
-        ia_ok: bool = is_available()
-        genres_ia = map_mood_to_genres(mood, 2) if ia_ok else []
+        ai_mode = (settings.ai_mode or "remote").lower()
+        local_available = False
+        remote_ok = False
+        genres_ia = []
+
+        if ai_mode == "local":
+            local_available = is_available()
+            genres_ia = map_mood_to_genres(mood, 2) if local_available else []
+        elif ai_mode == "remote":
+            try:
+                genres_ia = map_via_hf_api(mood, 2)
+                remote_ok = True
+            except Exception:
+                genres_ia = []
+        else:  # off
+            genres_ia = []
+
         genres_fb = fallback_genres_for(mood, 2)
-        tmdb_try = await dbg_tmdb.discover_by_genres([35], seed=mood)  # "proof of life" query
+        tmdb_try = await dbg_tmdb.discover_by_genres([35], seed=mood)
 
         return {
-            "ia_available": ia_ok,
+            "ai_mode": ai_mode,
+            "local_available": local_available,
+            "remote_ok": remote_ok,
             "ia_error": last_error(),
             "genres_ia": genres_ia,
             "genres_fallback": genres_fb,
@@ -67,5 +102,5 @@ async def debug_checks(mood: str = "feliz") -> Dict[str, Any]:
     except RetryError as re:
         inner = re.last_attempt.exception()
         raise HTTPException(status_code=502, detail=f"{type(inner).__name__}: {inner}") from re
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         raise HTTPException(status_code=502, detail=str(e)) from e

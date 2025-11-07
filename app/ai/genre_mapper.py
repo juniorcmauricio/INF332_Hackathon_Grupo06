@@ -1,5 +1,7 @@
 from __future__ import annotations
 from typing import List, Tuple, Dict, Optional
+from ..config import settings
+
 
 TMDB_GENRES: Dict[str, int] = {
     "Action": 28, "Adventure": 12, "Animation": 16, "Comedy": 35, "Crime": 80,
@@ -26,19 +28,31 @@ _last_error: Optional[str] = None
 
 def is_available() -> bool:
     """
-    Returns True if the transformers zero-shot pipeline is available and loaded.
+    Returns True only if AI_MODE=local and transformers can be loaded.
+    Otherwise, returns False WITHOUT trying to import transformers.
     """
     global _zs, _last_error
+
+    # Short-circuit: if not explicitly local, don't even try to load transformers
+    if (settings.ai_mode or "remote").lower() != "local":
+        _last_error = "AI_MODE != local; skipping local transformers"
+        return False
+
     if _zs is not None:
         return True
     try:
         from transformers import pipeline
-        # smaller model for faster cold start
-        _zs = pipeline("zero-shot-classification", model="valhalla/distilbart-mnli-12-3")
+        _zs = pipeline(
+            task="zero-shot-classification",
+            model="facebook/bart-large-mnli",   # safetensors-capable model
+            device_map="cpu",
+            model_kwargs={"use_safetensors": True, "low_cpu_mem_usage": True},
+        )
         return True
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         _last_error = str(e)
         return False
+
 
 def last_error() -> Optional[str]:
     """
