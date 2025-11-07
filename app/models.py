@@ -9,6 +9,7 @@ class Recommendation(BaseModel):
     title: str
     source: str = "TMDB"
     score: float = Field(ge=0.0, le=1.0, default=0.7)
+    providers: List[str] | None = None  # streaming platforms (optional)
 
 class RecommendationList(BaseModel):
     """
@@ -20,8 +21,8 @@ class RecommendationList(BaseModel):
         "json_schema_extra": {
             "examples": [{
                 "items": [
-                    {"title": "Amélie", "source": "TMDB", "score": 0.82},
-                    {"title": "La La Land", "source": "TMDB", "score": 0.87}
+                    {"title": "Amélie", "source": "TMDB", "score": 0.82, "providers": ["Netflix", "Prime Video"]},
+                    {"title": "La La Land", "source": "TMDB", "score": 0.87, "providers": ["Disney Plus"]}
                 ]
             }]
         }

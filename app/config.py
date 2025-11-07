@@ -19,6 +19,14 @@ class Settings(BaseSettings):
     ai_mode: str | None = "remote"     # remote | local | off
     hf_api_key: str | None = None
     hf_model: str | None = "facebook/bart-large-mnli"
+    # Gemini
+    gemini_api_key: str | None = None
+    gemini_model: Optional[str] = None  # e.g., 'gemini-pro' (v1) or 'gemini-1.5-flash' (v1beta)
+    # Optional custom prompt template for Gemini. Use placeholders: {mood}, {labels}, {top_k}
+    gemini_prompt_template: Optional[str] = None
+    # Watch providers (TMDB)
+    tmdb_region: Optional[str] = "BR"  # ISO 3166-1 code defaulting to Brazil
+    tmdb_include_providers: bool = False  # enable to fetch streaming providers per title
 
 
     # ⬇️ THIS is the important bit for pydantic-settings v2

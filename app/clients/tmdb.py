@@ -60,7 +60,7 @@ class TMDBClient:
             title: str = m.get("title") or m.get("name") or "Desconhecido"
             vote: float = float(m.get("vote_average") or 0.0)
             score: float = max(0.0, min(1.0, vote / 10.0))
-            out.append({"title": title, "score": score})
+            out.append({"title": title, "score": score, "id": m.get("id")})
         return out
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential_jitter(0.1, 0.6))
@@ -91,5 +91,38 @@ class TMDBClient:
             title: str = m.get("title") or m.get("name") or "Desconhecido"
             vote: float = float(m.get("vote_average") or 0.0)
             score: float = max(0.0, min(1.0, vote / 10.0))
-            out.append({"title": title, "score": score})
+            out.append({"title": title, "score": score, "id": m.get("id")})
         return out
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential_jitter(0.1, 0.6))
+    async def get_watch_providers(self, movie_id: int) -> List[str]:
+        """Fetch streaming providers for a movie ID (TMDB watch/providers endpoint)."""
+        region: str = (settings.tmdb_region or "US").upper()
+        async with httpx.AsyncClient(timeout=self.timeout, headers=self._headers()) as client:
+            params: Dict[str, Any] = {}
+            params.update(self._params())
+            r: httpx.Response = await client.get(f"{self.base}/movie/{movie_id}/watch/providers", params=params)
+            if r.status_code >= 400:
+                raise RuntimeError(f"/movie/{movie_id}/watch/providers {r.status_code} :: {str(r.url)} :: {r.text[:200]}")
+            data: Dict[str, Any] = r.json() or {}
+        results: Dict[str, Any] = data.get("results", {}) if isinstance(data, dict) else {}
+        entry: Dict[str, Any] = results.get(region) or results.get("US") or {}
+        flat: List[str] = []
+        def _extract(list_name: str) -> None:
+            arr = entry.get(list_name)
+            if isinstance(arr, list):
+                for prov in arr:
+                    if isinstance(prov, dict):
+                        name = prov.get("provider_name") or prov.get("display_priority")
+                        if isinstance(name, str):
+                            flat.append(name)
+        for section in ["flatrate", "rent", "buy", "ads", "free"]:
+            _extract(section)
+        # de-duplicate preserving order
+        seen = set()
+        ordered: List[str] = []
+        for p in flat:
+            if p not in seen:
+                seen.add(p)
+                ordered.append(p)
+        return ordered[:8]

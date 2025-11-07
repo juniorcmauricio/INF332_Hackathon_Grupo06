@@ -7,7 +7,17 @@ from .config import settings
 from .models import RecommendationList
 from .services.recommendation_service import RecommendationService
 
-from .ai.hf_zero_shot import map_via_hf_api
+from .ai.gemini_emotion import (
+    map_via_gemini_api,
+    get_last_error as get_gemini_error,
+    get_last_http_status,
+    get_last_raw_response,
+    get_last_request_payload,
+    get_model_name,
+    get_api_version,
+    get_available_models,
+    get_used_model,
+)
 
 
 # debug helpers
@@ -54,8 +64,13 @@ def debug_config() -> Dict[str, Any]:
     print("Debug config endpoint called")
     return {
         "ai_mode": settings.ai_mode,
-        "hf_model": settings.hf_model,
-        "hf_api_key_present": bool(settings.hf_api_key),
+        "gemini_api_key_present": bool(settings.gemini_api_key),
+        "gemini_model": get_model_name(),
+        "gemini_api_version": get_api_version(),
+        "gemini_model_configured": settings.gemini_model,
+        "gemini_custom_prompt": bool(settings.gemini_prompt_template),
+        "tmdb_region": settings.tmdb_region,
+        "tmdb_include_providers": bool(settings.tmdb_include_providers),
         "tmdb_v3_key_present": bool(settings.tmdb_v3_key),
     }
 
@@ -79,7 +94,7 @@ async def debug_checks(mood: str = "feliz") -> Dict[str, Any]:
             genres_ia = map_mood_to_genres(mood, 2) if local_available else []
         elif ai_mode == "remote":
             try:
-                genres_ia = map_via_hf_api(mood, 2)
+                genres_ia = map_via_gemini_api(mood, 2)
                 remote_ok = True
             except Exception:
                 genres_ia = []
@@ -89,11 +104,33 @@ async def debug_checks(mood: str = "feliz") -> Dict[str, Any]:
         genres_fb = fallback_genres_for(mood, 2)
         tmdb_try = await dbg_tmdb.discover_by_genres([35], seed=mood)
 
+        raw_resp = get_last_raw_response()
+        # Only show a compact snippet to avoid huge payloads in debug
+        raw_snippet = None
+        if isinstance(raw_resp, dict):
+            # try to extract the first candidate text for quick inspection
+            try:
+                cand = raw_resp.get("candidates")
+                if isinstance(cand, list) and cand:
+                    content = cand[0].get("content") if isinstance(cand[0], dict) else None
+                    parts = content.get("parts") if isinstance(content, dict) else None
+                    if isinstance(parts, list) and parts and isinstance(parts[0], dict):
+                        txt = parts[0].get("text", "")
+                        raw_snippet = txt[:200]
+            except Exception:  # noqa: BLE001
+                raw_snippet = None
+
         return {
             "ai_mode": ai_mode,
             "local_available": local_available,
             "remote_ok": remote_ok,
-            "ia_error": last_error(),
+            "ia_error": last_error() or get_gemini_error(),
+            "gemini_http_status": get_last_http_status(),
+            "gemini_request_payload": get_last_request_payload(),
+            "gemini_raw_snippet": raw_snippet,
+            "gemini_api_version": get_api_version(),
+            "gemini_model_effective": get_used_model() or get_model_name(),
+            "gemini_models_available": get_available_models()[:10],
             "genres_ia": genres_ia,
             "genres_fallback": genres_fb,
             "tmdb_sample_count": len(tmdb_try),
