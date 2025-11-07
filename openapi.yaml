@@ -1,0 +1,224 @@
+openapi: 3.0.3
+info:
+  title: Hackathon Movies API
+  version: "0.1.0"
+  description: |
+    FastAPI service that recommends movies based on a free-text mood.
+    It maps mood -> TMDB genres using Google Gemini (remote) or local/static fallback
+    and fetches movies and streaming providers from TMDB.
+servers:
+  - url: http://127.0.0.1:8000
+paths:
+  /health:
+    get:
+      summary: Health probe
+      description: Simple liveness check.
+      responses:
+        "200":
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /recommendations:
+    get:
+      summary: Get recommendations by mood
+      description: |
+        Provide a free-text mood, e.g. "quero algo leve e inspirador" or "feliz".
+      parameters:
+        - in: query
+          name: mood
+          required: true
+          schema:
+            type: string
+            pattern: "^[\\w\\sÀ-ÿ,.'!?-]{1,100}$"
+          description: Texto/livre que representa o humor desejado.
+      responses:
+        "200":
+            description: List of recommended movies
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/RecommendationList'
+
+  /_debug/config:
+    get:
+      summary: Debug configuration snapshot
+      description: Returns current AI/TMDB configuration flags for diagnostics.
+      responses:
+        "200":
+          description: Debug configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DebugConfig'
+
+  /_debug/checks:
+    get:
+      summary: Debug checks
+      description: Runs a small AI+TMDB pipeline to help diagnose issues.
+      parameters:
+        - in: query
+          name: mood
+          required: false
+          schema:
+            type: string
+            default: feliz
+          description: Mood sample to run checks with.
+      responses:
+        "200":
+          description: Debug results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DebugChecks'
+
+components:
+  schemas:
+    Recommendation:
+      type: object
+      properties:
+        title:
+          type: string
+          example: Amélie
+        source:
+          type: string
+          example: TMDB
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          example: 0.82
+        providers:
+          type: array
+          nullable: true
+          items:
+            type: string
+          example: ["Netflix", "Prime Video"]
+      required:
+        - title
+        - source
+        - score
+
+    RecommendationList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recommendation'
+      required:
+        - items
+      example:
+        items:
+          - title: Amélie
+            source: TMDB
+            score: 0.82
+            providers: ["Netflix", "Prime Video"]
+          - title: La La Land
+            source: TMDB
+            score: 0.87
+            providers: ["Disney Plus"]
+
+    DebugConfig:
+      type: object
+      properties:
+        ai_mode:
+          type: string
+          description: remote | local | off
+          example: remote
+        gemini_api_key_present:
+          type: boolean
+        gemini_model:
+          type: string
+          example: gemini-2.0-flash
+        gemini_api_version:
+          type: string
+          example: v1beta
+        gemini_model_configured:
+          type: string
+          nullable: true
+        gemini_custom_prompt:
+          type: boolean
+        gemini_top_k:
+          type: integer
+          example: 2
+        tmdb_region:
+          type: string
+          example: BR
+        tmdb_include_providers:
+          type: boolean
+        tmdb_v3_key_present:
+          type: boolean
+
+    DebugChecks:
+      type: object
+      description: |
+        Note: "genres_ia" and "genres_fallback" are returned by the API as arrays of
+        pairs [name, id]. For schema clarity here, they are represented as arrays of objects.
+      properties:
+        ai_mode:
+          type: string
+          example: remote
+        local_available:
+          type: boolean
+        remote_ok:
+          type: boolean
+        ia_error:
+          type: string
+          nullable: true
+        gemini_http_status:
+          type: integer
+          nullable: true
+        gemini_request_payload:
+          type: object
+        gemini_raw_snippet:
+          type: string
+          nullable: true
+        gemini_api_version:
+          type: string
+          example: v1beta
+        gemini_model_effective:
+          type: string
+          example: gemini-2.0-flash
+        gemini_models_available:
+          type: array
+          items:
+            type: string
+        genres_ia:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              id:
+                type: integer
+            required: [name, id]
+          example:
+            - { name: "Comedy", id: 35 }
+            - { name: "Animation", id: 16 }
+        genres_fallback:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              id:
+                type: integer
+            required: [name, id]
+          example:
+            - { name: "Comedy", id: 35 }
+            - { name: "Romance", id: 10749 }
+        tmdb_sample_count:
+          type: integer
+        configured_top_k:
+          type: integer
+          example: 2
