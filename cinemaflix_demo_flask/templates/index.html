@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>CinemaFlix - Grupo 06</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
+        h1, h2 { color: #333; }
+        .container { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        input[type="text"] { padding: 8px; margin-right: 5px; }
+        button { padding: 8px 15px; background-color: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        .results { background: #eee; padding: 15px; border-radius: 5px; margin-top: 15px; }
+        .error { background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-top: 15px; }
+
+        /* Estilos Demo 1 */
+        .tmdb-result-container { display: flex; gap: 20px; align-items: flex-start; }
+        .tmdb-result-poster img { width: 150px; border-radius: 8px; border: 1px solid #ccc; }
+        .tmdb-result-details { flex: 1; }
+        .tmdb-result-details p { font-size: 14px; }
+
+        /* Estilos Demo 3 */
+        .movie-list { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+        .movie-card { background: #fdfdfd; border: 1px solid #ccc; border-radius: 8px; width: 200px; padding: 10px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .movie-card img { width: 100%; border-radius: 5px; }
+        .movie-card h4 { font-size: 16px; margin: 10px 0 5px 0; }
+        .movie-card p { font-size: 12px; color: #555; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; }
+
+        /* Estilos Demo 4 */
+        .cinema-list { list-style-type: none; padding-left: 0; }
+        .cinema-list li { background: #fdfdfd; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd; }
+        .cinema-list li strong { color: #0056b3; }
+        .cinema-list li ul { padding-left: 20px; }
+        
+        /* Estilos Demo 5 */
+        .emotion-list { list-style-type: none; padding-left: 0; }
+        .emotion-list li { font-size: 14px; }
+        .emotion-list li strong { text-transform: capitalize; color: #333; }
+        
+        /* Estilos Demo 6 */
+        pre {
+            background-color: #2b2b2b;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>CinemaFlix - Hackathon (INF332)</h1>
+    <p>Este é um protótipo local para demonstrar as chamadas de API.</p>
+    <p><b>Se os resultados não atualizarem, aperte Ctrl+Shift+R para limpar o cache!</b></p>
+
+    <div class="container">
+        <h2>Demo 1: API do TMDb (Onde Assistir)</h2>
+        <form action="/demo_tmdb" method="POST">
+            <label for="movie_name">Filme (Streaming):</label>
+            <input type="text" id="movie_name" name="movie_name" value="Interestelar">
+            <button type="submit">Buscar Filme</button>
+        </form>
+        {% if tmdb_results %}
+            <div class="results">
+                <h3>Resultados para "{{ tmdb_results.query }}"</h3>
+                <div class="tmdb-result-container">
+                    <div class="tmdb-result-poster">
+                        {% if tmdb_results.poster_path %}
+                            <img src="https://image.tmdb.org/t/p/w200/{{ tmdb_results.poster_path }}" alt="Pôster de {{ tmdb_results.title }}">
+                        {% else %}
+                            <img src="https://via.placeholder.com/150x225.png?text=Sem+Poster" alt="Sem Pôster">
+                        {% endif %}
+                    </div>
+                    <div class="tmdb-result-details">
+                        <h4>{{ tmdb_results.title }} (ID: {{ tmdb_results.id }})</h4>
+                        <p><strong>Ficha (Sinopse):</strong> {{ tmdb_results.overview }}</p>
+                        {% if tmdb_results.streaming %}
+                            <strong>Assinatura (Streaming):</strong>
+                            <ul> {% for item in tmdb_results.streaming %} <li>{{ item }}</li> {% endfor %} </ul>
+                        {% endif %}
+                        {% if tmdb_results.rent %}
+                            <strong>Aluguel:</strong>
+                            <ul> {% for item in tmdb_results.rent %} <li>{{ item }}</li> {% endfor %} </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        {% if tmdb_error %} <div class="error"><strong>Erro na Demo 1:</strong> {{ tmdb_error }}</div> {% endif %}
+    </div>
+
+    <div class="container">
+        <h2>Demo 2: API do Gemini (Análise Pura)</h2>
+        <form action="/demo_ia" method="POST">
+            <label for="user_mood_simple">Seu Humor:</label>
+            <input type="text" id="user_mood_simple" name="user_mood_simple" value="Estou nostálgico">
+            <button type="submit">Analisar Humor</button>
+        </form>
+        {% if ia_results %}
+            <div class="results">
+                <h3>Análise de Humor para "{{ ia_results.query }}"</h3>
+                <p><strong>Gêneros Sugeridos:</strong> {{ ia_results.generos | join(', ') }}</p>
+                <p><strong>Temas Sugeridos:</strong> {{ ia_results.temas | join(', ') }}</p>
+                <p><strong>Lógica da IA:</strong> {{ ia_results.explicacao }}</p>
+            </div>
+        {% endif %}
+        {% if ia_error %} <div class="error"><strong>Erro na Demo 2:</strong> {{ ia_error }}</div> {% endif %}
+    </div>
+
+    <div class="container">
+        <h2>Demo 3: Descoberta por Humor (IA + TMDb)</h2>
+        <form action="/discover_by_mood" method="POST">
+            <label for="user_mood_discover">Seu Humor:</label>
+            <input type="text" id="user_mood_discover" name="user_mood_discover" value="Estou estressado e só quero relaxar">
+            <button type="submit">Descobrir Filmes</button>
+        </form>
+        {% if mood_movies %}
+            <div class="results">
+                <h3>Resultados para o humor: "{{ user_mood_query }}"</h3>
+                <p><small>(IA sugeriu Gêneros: {{ ia_suggestion_ids }})</small></p>
+                <div class="movie-list">
+                    {% for movie in mood_movies %}
+                        <div class="movie-card">
+                            {% if movie.poster_path %}
+                                <img src="https://image.tmdb.org/t/p/w200/{{ movie.poster_path }}" alt="{{ movie.title }}">
+                            {% else %}
+                                <img src="https://via.placeholder.com/200x300.png?text=Sem+Poster" alt="{{ movie.title }}">
+                            {% endif %}
+                            <h4>{{ movie.title }}</h4>
+                            <p>{{ movie.overview }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+        {% if mood_movies is defined and not mood_movies %}
+             <div classs="results">
+                <h3>Resultados...</h3>
+                <p>Nenhum filme encontrado com os gêneros sugeridos pela IA (IDs: {{ ia_suggestion_ids }})</p>
+            </div>
+        {% endif %}
+        {% if mood_error %} <div class="error"><strong>Erro na Demo 3:</strong> {{ mood_error }}</div> {% endif %}
+    </div>
+
+    <div class="container">
+        <h2>Demo 4: Monetização (Simulação de Cinemas)</h2>
+        <p>Esta é uma <b>simulação</b> para provar o modelo de negócio.</p>
+        <form action="/demo_monetization" method="POST">
+            <label for="movie_name_cinema">Filme (em cartaz):</label>
+            <input type="text" id="movie_name_cinema" name="movie_name_cinema" value="Divertidamente 2">
+            <label for="user_cep">Seu CEP:</label>
+            <input type="text" id="user_cep" name="user_cep" value="13083-000">
+            <button type="submit">Achar Cinemas</button>
+        </form>
+        {% if cinema_results %}
+            <div class="results">
+                <h3>Cinemas próximos para "{{ cinema_results.query_movie }}"</h3>
+                <p><small>(Localização simulada para o CEP: {{ cinema_results.query_cep }})</small></p>
+                <ul class="cinema-list">
+                    {% for cinema in cinema_results.cinemas %}
+                        <li>
+                            <strong>{{ cinema.name }}</strong>
+                            <ul>
+                                {% for time in cinema.showtimes %}
+                                    <li>Sessão: {{ time }}</li>
+                                {% endfor %}
+                            </ul>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        {% if cinema_error %} <div class="error"><strong>Erro na Demo 4:</strong> {{ cinema_error }}</div> {% endif %}
+    </div>
+
+    <div class="container">
+        <h2>Demo 5: IA de Visão Facial (Simulação)</h2>
+        <p>Esta é uma <b>simulação</b> da Google Cloud Vision API.</p>
+        <form action="/demo_vision_ai" method="POST">
+            <button type="submit">Simular Captura da Câmera</button>
+        </form>
+        {% if vision_results %}
+            <div class="results">
+                <h3>Emoções Detectadas (Simulação)</h3>
+                <p>A API retornou a seguinte análise facial:</p>
+                {% set face = vision_results.faceAnnotations[0] %}
+                <ul class="emotion-list">
+                    <li><strong>Alegria:</strong> {{ face.joyLikelihood }}</li>
+                    <li><strong>Tristeza:</strong> {{ face.sorrowLikelihood }}</li>
+                    <li><strong>Raiva:</strong> {{ face.angerLikelihood }}</li>
+                    <li><strong>Surpresa:</strong> {{ face.surpriseLikelihood }}</li>
+                </ul>
+                <p><b>Lógica:</b> O app leria "VERY_LIKELY" para Alegria e recomendaria Comédia (ID 35).</p>
+            </div>
+        {% endif %}
+        {% if vision_error %} <div class="error"><strong>Erro na Demo 5:</strong> {{ vision_error }}</div> {% endif %}
+    </div>
+    
+    <div class="container">
+        <h2>Demo 6: Backend e CineMatch (Simulação Firebase)</h2>
+        <p>Esta é uma <b>simulação</b> para provar a estrutura de dados (schema) do nosso banco de dados NoSQL (Firestore) para login e "CineMatch".</p>
+        <form action="/demo_firebase" method="POST">
+            <label for="user_email">Simular Login (E-mail):</label>
+            <input type="text" id="user_email" name="user_email" value="junior@email.com">
+            <label for="liked_movie_id">Simular "Like" (ID do Filme):</label>
+            <input type="text" id="liked_movie_id" name="liked_movie_id" value="27205">
+            <button type="submit">Simular Ação</button>
+        </form>
+        
+        {% if firebase_results %}
+            <div class="results">
+                <h3>Estrutura de Dados do Firestore (Simulação)</h3>
+                <p>O backend salvaria os dados de perfil e de grupo desta forma:</p>
+                <pre>{{ firebase_results }}</pre>
+                
+                <p><b>Lógica do CineMatch:</b> Veja como o filme <b>872585</b> foi curtido por ambos os usuários ("user_ABC123" e "user_XYZ789") e, por isso, foi movido para a lista de `matches`. É assim que o "match" de grupo funciona.</p>
+                </div>
+        {% endif %}
+        {% if firebase_error %} <div class="error"><strong>Erro na Demo 6:</strong> {{ firebase_error }}</div> {% endif %}
+    </div>
+
+</body>
+</html>
